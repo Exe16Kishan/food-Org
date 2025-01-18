@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum UserRole {
+  CUSTOMER
+  RESTAURANT
+  CHARITY
+  ADMIN
+}
+
+enum FoodStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  DONATED
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  passwordHash  String
+  role          UserRole
+  name          String
+  phoneNumber   String?
+  address       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  restaurant    Restaurant?
+  orders        Order[]
+  donations     Donation[]
+}
+
+model Restaurant {
+  id            String      @id @default(cuid())
+  userId        String      @unique
+  user          User        @relation(fields: [userId], references: [id])
+  name          String
+  description   String?
+  address       String
+  latitude      Float?
+  longitude     Float?
+  openingHours  Json
+  foodItems     FoodItem[]
+  donations     Donation[]
+}
+
+model FoodItem {
+  id            String      @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+  name          String
+  description   String?
+  originalPrice Decimal
+  discountPrice Decimal
+  quantity      Int
+  expiryTime    DateTime
+  status        FoodStatus
+  image         String?
+  orders        Order[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  foodItemId    String
+  foodItem      FoodItem    @relation(fields: [foodItemId], references: [id])
+  quantity      Int
+  totalPrice    Decimal
+  status        String
+  paymentStatus String
+  createdAt     DateTime    @default(now())
+}
+
+model Donation {
+  id            String      @id @default(cuid())
+  restaurantId  String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+  charityId     String
+  charity       User        @relation(fields: [charityId], references: [id])
+  items         Json
+  status        String
+  pickupTime    DateTime
+  createdAt     DateTime    @default(now())
+}
+
+model Impact {
+  id            String      @id @default(cuid())
+  restaurantId  String
+  foodSaved     Float
+  moneySaved    Decimal
+  co2Saved      Float
+  month         Int
+  year          Int
+  createdAt     DateTime    @default(now())
+
+  @@unique([restaurantId, month, year])
+}
